@@ -1,0 +1,9 @@
+{
+  "@context": {
+    "name": "https://schema.org/name",
+    "homepage": {
+      "@id": "http://schema.org/AboutPage",
+      "@type": "@id"
+    }
+  }
+}
