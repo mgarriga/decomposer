@@ -1,9 +1,0 @@
-{
-"serviceName": "texasHoldEm",
-"operations": [	{"name":"playPoker"}
-	],
-"resources": [
-	{"name":"winning_hands"},
-	{"name":"player_cards"}
-	]
-}
