@@ -38,7 +38,7 @@ public class Main {
             }
         }
 
-        BuildResult(args[2],timestamp, rootContextNode, threshold);
+        BuildResult(resultsPath,timestamp, rootContextNode, threshold);
 
         float seconds = (System.currentTimeMillis()-timestamp)/1000;
         logger.info("The Process has taken: " + seconds + " seconds");
