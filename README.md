@@ -25,8 +25,6 @@ Unfortunately, we are not free from certain manual setup steps before safe usage
 - Clone the repo
 - Add disco jar library to the build path
 - Download and extract a disco word space (http://www.linguatools.de/disco/disco-download_en.html). So far we've tested the English-wikipedia-based: enwiki-20130403-sim-lemma-mwl-lc
-- create 'input' and 'results' folders under the root of the project (i.e., 'decomposer/')
-- put some json input specifications under the input folder -- e.g., the ones provided in input.zip
 - add log4j configuration file to the classpath (optional)
 
 After these steps, you should be ready to start using the tool. The main method expects three parameters:
