@@ -22,7 +22,7 @@ The project is at an early stage of development. However below you can find the 
 
 ## Setup and usage
 Unfortunately, we are not free from certain manual setup steps before safe usage of the tool:
-- Clone the repo
+- Clone the repo.
 - Add disco jar library to the build path
 - Download and extract a disco word space (http://www.linguatools.de/disco/disco-download_en.html). So far we've tested the English-wikipedia-based: enwiki-20130403-sim-lemma-mwl-lc
 - add log4j configuration file to the classpath (optional)
