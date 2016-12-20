@@ -324,3 +324,5 @@ single
 double
 multiple
 list
+add
+save

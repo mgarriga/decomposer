@@ -65,12 +65,10 @@ public class JsonUtils {
                         String inputTermActual = iterInput.next().trim();
                         IndexWord wordI = Utils.dictionary.lookupIndexWord(POS.NOUN, inputTermActual);
                         //DISCO
-                        int depthActual = 32;
                         float discoValue = 1;
                         if (wordI!=null) {
                             try {
                                 discoValue = Utils.disco.semanticSimilarity(wordI.getLemma(),wordC.getLemma(), DISCO.SimilarityMeasure.KOLB);
-                                //System.out.println(wordI.getLemma() + " - " + wordC.getLemma() + ": " + discoValue);
 
                                 if (discoValue > 0) {
                                     if (discoValue >= 1) discoValue = 0;
