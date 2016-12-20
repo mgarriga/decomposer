@@ -1,0 +1,10 @@
+{
+"serviceName": "geoLocation",
+"operations": [	{"name":"geoLocation"}
+	],
+"resources": [
+	{"name":"country"},
+	{"name":"city"},
+	{"name":"state"}
+	]
+}
