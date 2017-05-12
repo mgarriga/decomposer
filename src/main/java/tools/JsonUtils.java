@@ -3,6 +3,8 @@ package tools;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import de.linguatools.disco.DISCO;
+import io.swagger.models.Path;
+import io.swagger.models.Swagger;
 import net.sf.extjwnl.JWNLException;
 import net.sf.extjwnl.data.IndexWord;
 import net.sf.extjwnl.data.POS;
@@ -12,6 +14,8 @@ import org.apache.logging.log4j.Logger;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import static java.lang.String.valueOf;
@@ -28,6 +32,8 @@ public class JsonUtils {
         if (!children.isMissingNode()){
             Iterator<JsonNode> childrenElements = children.elements();
             level++;
+            //La comparación es depth first (primero los conceptos mas especificos del schema)
+            // asique recorro y llamo recursivamente con los hijos
             while (childrenElements.hasNext()) {
                 JsonNode childrenElement = childrenElements.next();
                 ret = CompareWithJsonTree(vectorTerms, childrenElement, childrenKey, bestDepth, bestResult, level);
@@ -37,6 +43,7 @@ public class JsonUtils {
             level--;
         }
 
+        //Preparo el vector de terminos del schema
         String sanitizedContextName = contextNode.get("name").toString().replace("\"","").trim();
         // For debuggin purposes
         /*if (sanitizedContextName.equalsIgnoreCase("WearAction")){  //insert context term here
@@ -47,12 +54,16 @@ public class JsonUtils {
                 }
             }
         }*/
-        //
+
         Vector<String> contextTerms = Utils.separarTerminosAuxFine(sanitizedContextName);
+        //System.out.println(contextTerms);
         float totalDepthNode = 999;
         Iterator<String> iterContext = contextTerms.iterator();
         double[][] hungarianMatrix = new double[vectorTerms.size()][contextTerms.size()];
         int j = 0;
+
+        //Aca viene la magia, comparo termino contra termino del input y del context
+        // usando DISCO para semantic similarity y hungarian para quedarme con la mejor
         while (iterContext.hasNext()){
             int bestAux = 0;
             String contextTermActual = iterContext.next().trim();
@@ -64,10 +75,11 @@ public class JsonUtils {
                     while (iterInput.hasNext()){
                         String inputTermActual = iterInput.next().trim();
                         IndexWord wordI = Utils.dictionary.lookupIndexWord(POS.NOUN, inputTermActual);
-                        //DISCO
+
                         float discoValue = 1;
                         if (wordI!=null) {
                             try {
+                                // llamo efectivamente a disco con el lemma de cada termino
                                 discoValue = Utils.disco.semanticSimilarity(wordI.getLemma(),wordC.getLemma(), DISCO.SimilarityMeasure.KOLB);
 
                                 if (discoValue > 0) {
@@ -102,6 +114,8 @@ public class JsonUtils {
             }
             j++;
         }
+        //calculo el valor de similitud total para los terminos del input
+        // y del nodo context (schema) actual usando hungarian
         HungarianAlgorithm hg = new HungarianAlgorithm(hungarianMatrix);
         int[] resultMatrix =  hg.execute();
         totalDepthNode = 0;
@@ -113,7 +127,7 @@ public class JsonUtils {
                 totalDepthNode+=1;
             }
         }
-        //DISCO
+        //penalizar con 0.1 por cada termino no usado
         totalDepthNode = (float) (totalDepthNode + (0.1 * Math.abs(vectorTerms.size() - contextTerms.size())));
         if (totalDepthNode<bestDepth){
             bestResult = sanitizedContextName;
@@ -124,20 +138,33 @@ public class JsonUtils {
         return ret;
     }
 
-    public static void AnalyzeJson(JsonNode inputNode, JsonNode rootContextNode, String childrenName, BufferedWriter out) throws IOException {
+    public static void AnalyzeSwagger(Swagger inputNode, JsonNode rootContextNode, BufferedWriter out) throws IOException {
 
-        JsonNode auxInput = inputNode.path("name");
-        if (!auxInput.isMissingNode()){
-            String sanitizedInput = inputNode.get("name").toString().replace("\"","").trim();
+        // Paths contiene los "recursos" en swagger
+        Map<String,Path> pathsMap = inputNode.getPaths();
+
+        for(Map.Entry<String,Path> entry: pathsMap.entrySet()) {
+
+            //preparo el path actual sacando caracteres extranios y separando en terminos
+            String sanitizedInput = entry.getKey();
+            sanitizedInput = sanitizedInput.replaceAll("[^a-zA-Z]", "-");
+            sanitizedInput = sanitizedInput.substring(1);
+            if (sanitizedInput.startsWith("-")) sanitizedInput = sanitizedInput.replaceFirst("-","");
             Vector<String> vectorTerms = Utils.separarTerminosAuxFine(sanitizedInput);
-            if (!vectorTerms.isEmpty()){
+            vectorTerms = Utils.removeDuplicates(vectorTerms);
+            System.out.println(vectorTerms);
+
+
+            if (!vectorTerms.isEmpty()) {
+
+                //comparo el vector de terminos del path actual contra el schema
                 String[] mejorResultActual = CompareWithJsonTree(vectorTerms, rootContextNode, "children", 999, "", 0);
                 try {
-                    out.write(String.valueOf(vectorTerms+";"));
-                    logger.info(String.valueOf(vectorTerms+";"));
-                    for (int i = 0; i < mejorResultActual.length ; i++) {
-                        out.write(mejorResultActual[i]+";");
-                        logger.info(mejorResultActual[i]+";");
+                    out.write(String.valueOf(vectorTerms + ";"));
+                    logger.info(String.valueOf(vectorTerms + ";"));
+                    for (int i = 0; i < mejorResultActual.length; i++) {
+                        out.write(mejorResultActual[i] + ";");
+                        logger.info(mejorResultActual[i] + ";");
                     }
                     out.write("\n");
                 } catch (IOException e) {
@@ -146,14 +173,7 @@ public class JsonUtils {
                 logger.info("\n");
             }
         }
-        JsonNode children = inputNode.path(childrenName);
-        if (!children.isMissingNode()){
-            Iterator<JsonNode> childrenElements = children.elements();
-            while (childrenElements.hasNext()){
-                JsonNode childrenElement = childrenElements.next();
-                AnalyzeJson(childrenElement, rootContextNode, childrenName, out);
-            }
-        }
+
     }
 
 

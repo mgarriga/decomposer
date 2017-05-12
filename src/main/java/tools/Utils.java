@@ -6,19 +6,24 @@ import net.sf.extjwnl.JWNLException;
 import net.sf.extjwnl.data.IndexWord;
 import net.sf.extjwnl.data.POS;
 import net.sf.extjwnl.dictionary.Dictionary;
+import net.sf.extjwnl.dictionary.MorphologicalProcessor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Vector;
 
 /**
  * Created by aderenzis on 14/11/16.
  */
+
 public class Utils {
+    private int MaxWordLength = 50;
+    private static MorphologicalProcessor morph;
+    private static boolean IsInitialized = false;
+    public static HashMap AllWords = null;
     public static final Logger logger =  LogManager.getLogger("Utils");
     public static Dictionary dictionary = null;
     static Vector<String> vStopWords = null;
@@ -27,7 +32,12 @@ public class Utils {
     public static boolean initializeDictionaries(String discoDbPath){
 
         try {
+
+            AllWords = new HashMap ();
+
+
             dictionary = Dictionary.getDefaultResourceInstance();
+            morph = dictionary.getMorphologicalProcessor();
             BufferedReader stoplistFile = new BufferedReader(new FileReader("./stoplist.txt"));
             String line;
             vStopWords = new Vector();
@@ -41,6 +51,7 @@ public class Utils {
                 logger.error("Error creating DISCO instance: ", ex);
                 return false;
             }
+            IsInitialized = true;
             return true;
         } catch (Exception e) {
             logger.error("Error Initializing Dictionaries: ", e);
@@ -210,5 +221,84 @@ public class Utils {
 
         return (48<=charAt && charAt<=57);
     }
+
+    public static Vector<String> removeDuplicates(Vector<String> vectorTerms) {
+        Vector<String> newVector = new Vector<>();
+        IndexWord idxActual = null;
+        IndexWord idxAux = null;
+       // System.out.println("antes: " + vectorTerms.toString());
+        for(int i = 0; i < vectorTerms.size();i++){
+            boolean remove = false;
+            String wordQuery = Stem(vectorTerms.get(i));
+            for (int j = i+1; j < vectorTerms.size();j++){
+                if(wordQuery.equalsIgnoreCase(Stem(vectorTerms.get(j)))) {
+                    remove = true;
+                    break;
+                }
+            }
+            if (!remove) {
+                String elem = vectorTerms.get(i);
+                newVector.add(elem);
+            }
+        }
+       // System.out.println("despues: " + newVector.toString());
+        return newVector;
+    }
+
+    public static String StemWordWithWordNet(String word)
+    {
+        if ( !IsInitialized )
+            return word;
+        if ( word == null ) return null;
+        if ( morph == null ) morph = dictionary.getMorphologicalProcessor();
+
+        IndexWord w;
+        try
+        {
+            w = morph.lookupBaseForm( POS.VERB, word );
+            if ( w != null )
+                return w.getLemma().toString ();
+            w = morph.lookupBaseForm( POS.NOUN, word );
+            if ( w != null )
+                return w.getLemma().toString();
+            w = morph.lookupBaseForm( POS.ADJECTIVE, word );
+            if ( w != null )
+                return w.getLemma().toString();
+            w = morph.lookupBaseForm( POS.ADVERB, word );
+            if ( w != null )
+                return w.getLemma().toString();
+        }
+        catch ( JWNLException e )
+        {
+        }
+        return null;
+    }
+
+    public static String Stem(String word)
+    {
+        // check if we already know the word
+        String stemmedword = (String) AllWords.get( word );
+        if ( stemmedword != null )
+            return stemmedword; // return it if we already know it
+
+        stemmedword = StemWordWithWordNet (word);
+
+        if ( stemmedword != null )
+        {
+            // word was recognized and stemmed with wordnet:
+            // add it to hashmap and return the stemmed word
+            AllWords.put( word, stemmedword );
+            return stemmedword;
+        }
+        // word could not be stemmed by wordnet,
+        // thus it is no correct english word
+        // just add it to the list of known words so
+        // we won't have to look it up again
+        AllWords.put( word, word );
+        return word;
+    }
+
+
+
 
 }

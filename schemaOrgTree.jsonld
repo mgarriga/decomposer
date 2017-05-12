@@ -6424,7 +6424,7 @@
 
         {
 
-        "@type": "rdfs:Class", "rdfs:subClassOf": "schema:Product",  "description": "A vehicle is a device that is designed or used to transport people or cargo over land, water, air, or through space.",
+        "@type": "rdfs:Class", "rdfs:subClassOf": "schema:Product",  "description": "A vehicle is a device that is designed or used to s people or cargo over land, water, air, or through space.",
         "name": "Vehicle",
         "@id": "schema:Vehicle",
         "layer": "core",
